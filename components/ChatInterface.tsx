@@ -13,18 +13,27 @@ interface Message {
   content: string
   created_at: string
   user_email?: string
+  username?: string
+}
+
+interface Profile {
+  username: string
+  display_name?: string
 }
 
 export default function ChatInterface({ user }: { user: User }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
     // Fetch initial messages
     fetchMessages()
+    // Fetch user profile
+    fetchUserProfile()
 
     // Subscribe to new messages
     const channel = supabase
@@ -45,7 +54,8 @@ export default function ChatInterface({ user }: { user: User }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase])
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -62,6 +72,18 @@ export default function ChatInterface({ user }: { user: User }) {
 
     if (!error && data) {
       setMessages(data)
+    }
+  }
+
+  const fetchUserProfile = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username, display_name')
+      .eq('id', user.id)
+      .single()
+
+    if (!error && data) {
+      setUserProfile(data)
     }
   }
 
@@ -92,7 +114,9 @@ export default function ChatInterface({ user }: { user: User }) {
       <header className="flex items-center justify-between p-4 border-b">
         <div>
           <h1 className="text-2xl font-bold">Diino Chat</h1>
-          <p className="text-sm text-muted-foreground">Welcome, {user.email}</p>
+          <p className="text-sm text-muted-foreground">
+            Welcome, {userProfile?.display_name || userProfile?.username || user.email}
+          </p>
         </div>
         <Button variant="outline" onClick={handleLogout}>
           Logout
@@ -115,9 +139,18 @@ export default function ChatInterface({ user }: { user: User }) {
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-xs opacity-70 mb-1">
-                  {message.user_email || 'Anonymous'}
-                </p>
+                {message.username ? (
+                  <a 
+                    href={`/${message.username}`}
+                    className="text-xs opacity-70 mb-1 hover:underline inline-block"
+                  >
+                    @{message.username}
+                  </a>
+                ) : (
+                  <p className="text-xs opacity-70 mb-1">
+                    {message.user_email || 'Anonymous'}
+                  </p>
+                )}
                 <p>{message.content}</p>
               </div>
             </div>

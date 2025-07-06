@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import ChatInterface from '@/components/ChatInterface'
+import StreamChatInterface from '@/components/StreamChatInterface'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -13,7 +13,7 @@ export default async function Home() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <ChatInterface user={user} />
+      <StreamChatInterface />
     </main>
   )
 }
