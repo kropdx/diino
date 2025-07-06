@@ -1,0 +1,19 @@
+{
+    "mcpServers": {
+      "context7": {
+        "serverUrl": "https://mcp.context7.com/sse"
+      },
+      "supabase": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@supabase/mcp-server-supabase@latest",
+          "--project-ref=rpagvizzkbnvfloiufsu"
+        ],
+        "env": {
+          "SUPABASE_ACCESS_TOKEN": "sbp_3f1f1dbd020969c7720808ec4b9ce2b74ffef441"
+        }
+      }
+    }
+  }
+  
