@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -8,28 +9,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function SignupPage() {
+export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
   // Using the shared Supabase client instance
+  
+  useEffect(() => {
+    // Check for verification code in URL
+    const code = searchParams.get('code')
+    if (code) {
+      setMessage('Email verified successfully! Please log in.')
+    }
+  }, [searchParams])
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setMessage(null)
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
-    }
-
-    const { error, data } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -37,22 +40,19 @@ export default function SignupPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else if (data?.user?.identities?.length === 0) {
-      setError('User already exists')
-      setLoading(false)
     } else {
-      setMessage('Check your email for the confirmation link!')
-      setLoading(false)
+      router.push('/')
+      router.refresh()
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create an account</CardTitle>
-        <CardDescription>Sign up to start using Diino chat</CardDescription>
+        <CardTitle>Login to Diino</CardTitle>
+        <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSignup}>
+      <form onSubmit={handleLogin}>
         <CardContent className="space-y-4">
           {error && (
             <div className="p-3 text-sm text-red-500 bg-red-100 rounded-md">
@@ -83,29 +83,17 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={6}
             />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={loading || !!message}>
-            {loading ? 'Creating account...' : 'Sign up'}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
           <p className="text-sm text-center text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
-              Login
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-primary hover:underline">
+              Sign up
             </Link>
           </p>
         </CardFooter>

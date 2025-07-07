@@ -36,6 +36,12 @@ export async function middleware(request: NextRequest) {
                      request.nextUrl.pathname.startsWith('/signup')
   const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding')
   const isLogoutRoute = request.nextUrl.pathname.startsWith('/logout')
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api/')
+
+  // Skip middleware for API routes
+  if (isApiRoute) {
+    return supabaseResponse
+  }
 
   // If user is not authenticated and trying to access protected route
   if (!user && !isAuthRoute && !isLogoutRoute) {

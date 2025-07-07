@@ -15,6 +15,7 @@ export async function createStreamUser(userId: string, email: string, name?: str
   await serverClient.upsertUser({
     id: userId,
     name: name || email.split('@')[0] || 'User',
+    role: 'user',
   });
   
   return token;

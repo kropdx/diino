@@ -5,33 +5,33 @@ import { StreamChat, Channel as StreamChannel } from 'stream-chat';
 import {
   Chat,
   Channel,
-  ChannelHeader,
   MessageList,
   MessageInput,
   Thread,
   Window,
 } from 'stream-chat-react';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import CustomChannelHeader from './CustomChannelHeader';
+import CustomMessage from './CustomMessage';
 
 import 'stream-chat-react/dist/css/v2/index.css';
 
 export default function StreamChatInterface() {
   const [client, setClient] = useState<StreamChat | null>(null);
   const [channel, setChannel] = useState<StreamChannel | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { measureAsync } = usePerformanceMonitor('StreamChatInterface');
+  const { user, profile: userProfile, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const initializeChat = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('No authenticated user');
+      // Wait for auth to be loaded
+      if (authLoading || !user) {
+        if (!authLoading && !user) {
+          console.error('No authenticated user');
+        }
         return;
       }
-      
-      setUser(user);
       
       const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
       if (!apiKey) {
@@ -43,27 +43,42 @@ export default function StreamChatInterface() {
       
       try {
         // Get token from our server endpoint
-        const response = await fetch('/api/stream/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, email: user.email }),
-        });
-        
-        if (!response.ok) throw new Error('Failed to get Stream token');
-        
-        const { token } = await response.json();
-        
-        await streamClient.connectUser(
-          {
-            id: user.id,
-            name: user.email?.split('@')[0] || 'User',
+        const { token } = await measureAsync(
+          'getStreamToken',
+          async () => {
+            const response = await fetch('/api/stream/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id, email: user.email }),
+            });
+            
+            if (!response.ok) throw new Error('Failed to get Stream token');
+            
+            return response.json();
           },
-          token
+          { userId: user.id }
         );
         
-        const channel = streamClient.channel('messaging', 'general');
+        await measureAsync(
+          'connectStreamUser',
+          () => streamClient.connectUser(
+            {
+              id: user.id,
+              name: user.email?.split('@')[0] || 'User',
+            },
+            token
+          )
+        );
         
-        await channel.watch();
+        // Create or get the single global chat channel
+        // Using 'team' type which has more permissive default permissions
+        const channel = streamClient.channel('team', 'global-chat');
+        
+        // Watch the channel (creates it if it doesn't exist)
+        await measureAsync(
+          'watchChannel',
+          () => channel.watch()
+        );
         
         setClient(streamClient);
         setChannel(channel);
@@ -79,25 +94,29 @@ export default function StreamChatInterface() {
         client.disconnectUser();
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, measureAsync]);
   
-  if (!client || !channel) {
+  if (authLoading || !client || !channel) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-gray-500">Connecting to chat...</p>
+          <p className="text-gray-500">
+            {authLoading ? 'Loading user data...' : 'Connecting to chat...'}
+          </p>
         </div>
       </div>
     );
   }
   
+
   return (
     <div className="h-screen flex flex-col">
       <Chat client={client} theme="str-chat__theme-light">
         <Channel channel={channel}>
           <Window>
-            <ChannelHeader />
-            <MessageList />
+            <CustomChannelHeader userProfile={userProfile} />
+            <MessageList Message={CustomMessage} />
             <MessageInput />
           </Window>
           <Thread />

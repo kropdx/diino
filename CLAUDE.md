@@ -32,7 +32,8 @@ Note: No test framework is currently configured. When tests are added, update th
 ### Tech Stack
 - **Frontend**: Next.js 15.3.5 with App Router, React 19, TypeScript 5.8.3
 - **Styling**: Tailwind CSS 3.4.17 with shadcn/ui components
-- **Backend**: Supabase (PostgreSQL, Auth, Realtime)
+- **Backend**: Supabase (PostgreSQL, Auth) + Stream Chat (messaging)
+- **Chat**: Stream Chat React SDK for real-time messaging
 - **State**: React hooks (no external state management)
 
 ### Key Patterns
@@ -68,6 +69,8 @@ Required environment variables in `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_STREAM_API_KEY=your_stream_api_key
+STREAM_API_SECRET=your_stream_api_secret
 ```
 
 ## Key Implementation Details
@@ -78,11 +81,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 3. Supabase Auth manages sessions
 4. Logout is a server action at `/app/(auth)/logout/route.ts`
 
-### Real-time Messaging
-1. `ChatInterface.tsx` subscribes to Supabase Realtime on mount
-2. Messages are fetched on load and updated via subscription
-3. New messages trigger real-time updates for all connected clients
-4. Message insertion requires authentication (RLS policy)
+### Real-time Messaging (Stream Chat)
+1. `StreamChatInterface.tsx` initializes Stream Chat client with user authentication
+2. Users are automatically synced with Stream Chat on signup
+3. Token generation handled by `/api/stream/token` endpoint
+4. Messages are managed by Stream Chat's infrastructure
+5. Built-in features: typing indicators, read receipts, threads, reactions
 
 ### Styling Approach
 - Tailwind CSS utilities with CSS variables for theming
