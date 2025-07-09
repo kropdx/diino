@@ -1,8 +1,9 @@
 'use client';
 
-import { Home, MessageSquare, Settings, Users } from 'lucide-react';
+import { Home, User, Users, Activity, Plus, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -18,32 +19,65 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 
-const items = [
-  {
-    title: 'Home',
-    url: '/',
-    icon: Home,
-  },
-  {
-    title: 'Chat',
-    url: '/',
-    icon: MessageSquare,
-  },
-  {
-    title: 'Users',
-    url: '/users',
-    icon: Users,
-  },
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings,
-  },
-];
+interface UserTag {
+  user_tag_id: string;
+  tag: {
+    tag_id: string;
+    name: string;
+  };
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { profile: userProfile } = useAuth();
+  const [userTags, setUserTags] = useState<UserTag[]>([]);
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched tags:', data);
+          setUserTags(data);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      }
+    };
+
+    if (userProfile) {
+      fetchTags();
+    }
+  }, [userProfile]);
+
+  const items = [
+    {
+      title: 'Home',
+      url: '/home',
+      icon: Home,
+    },
+    {
+      title: 'Create Post',
+      url: '/post',
+      icon: Plus,
+    },
+    {
+      title: 'Profile',
+      url: userProfile ? `/${userProfile.username}` : '#',
+      icon: User,
+    },
+    {
+      title: 'Users',
+      url: '/users',
+      icon: Users,
+    },
+    {
+      title: 'Stress Test',
+      url: '/home/stress-test',
+      icon: Activity,
+    },
+  ];
 
   return (
     <Sidebar>
@@ -70,6 +104,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        
+        {userTags.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Tags</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {userTags.map((userTag) => (
+                  <SidebarMenuItem key={userTag.user_tag_id}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={pathname === `/tag/${userTag.tag.name}`}
+                    >
+                      <Link 
+                        href={`/tag/${userTag.tag.name}`}
+                        onClick={() => console.log('Navigating to tag:', userTag.tag.name, 'URL:', `/tag/${userTag.tag.name}`)}
+                      >
+                        <Tag className="size-4" />
+                        <span>#{userTag.tag.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter className="border-t">
         {userProfile && (

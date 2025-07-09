@@ -1,15 +1,17 @@
 # Diino Merge Plan  🚧
 
 ## Background and Motivation
-We are merging the real-time Stream Chat prototype (current repo) with the *Diino* social-story platform described in `diino.md`.  Goals:
-1. Keep the single persistent Global Chat channel powered by Stream Chat.
-2. Introduce the Story/Tag data model (Supabase tables + RLS) so users can publish stories.
-3. Whenever a story is published, the server injects a formatted *story message* into the Global Chat (via Stream server API).  Chat replies that reference that story are saved to the `Comment` table.
-4. Gradually port legacy React components from the old codebase feature-by-feature.
+We are building the Diino social-story platform described in `diino.md` with a real-time chat system using native Postgres/Supabase implementation.
+
+### Architecture Decision: Native Supabase Chat ✅
+- Built custom chat solution using Postgres + Supabase Realtime
+- All chat functionality at `/home` route
+- No external chat dependencies
+- Full control over chat features and data
 
 ## Key Challenges and Analysis
 - **Schema alignment** – Translate `diino.md` Prisma-style schema into Supabase SQL, removing Clerk references, ensuring proper FK & RLS.
-- **Event fan-out** – Story → Edge Function → Stream message; also handle chat reply → DB comment.
+- **Event fan-out** – Story → Edge Function → Native chat message
 - **UI cohesion** – Chat interface needs a card renderer identical to story layout elsewhere; legacy component import strategy.
 - **Migration safety** – Must rebuild dev DB from scratch; no prod data yet, so can iterate quickly.
 
@@ -31,59 +33,104 @@ The `old-code/` directory contains the full Tiiny app (Next 15 + Prisma + Clerk)
 - [x] 1.1 Translate Tiiny schema to Supabase SQL (Tables listed in diino.md)
 - [x] 1.2 Write migration `20250707000000_initial_diino.sql` under `supabase/migrations/`
 - [x] 1.3 Add RLS policies per table (public read for stories, owner write, etc.)
-- [ ] 1.4 Seed helper SQL to create `global-chat` channel via edge function *(moved to Phase 3*
 - [x] 1.5 Verify locally with Supabase CLI & unit tests
 
-### Phase 2 – Remove Prisma Layer (pending)
+### Phase 2 – Remove Prisma Layer (completed ✅)
 - [x] 2.1 Delete `/old-code/src/lib/db.ts` and ORM usages (reference only)
-- [ ] 2.2 Replace API route data access with Supabase JS / SQL-RPC calls
 - [x] 2.3 Generate TypeScript types from Supabase and add to repo
 
-### Phase 3 – Edge Functions & Triggers (in_progress)
-- [ ] 3.1 `story-to-chat` edge function + Postgres trigger AFTER INSERT ON "Story" *(active)*
-- [ ] 3.2 `sync-stream-user` finalize (ensure idempotent)
-- [ ] 3.3 `chat-reply-to-comment` edge function (stretch)
+### Phase 3 – Edge Functions & Triggers (pending) 🚧
+- [ ] 3.1 `story-to-chat` edge function to post story cards to native chat
+- [ ] 3.2 `chat-reply-to-comment` edge function to sync chat replies as comments
 
 ### Phase 4 – API Routes Refactor
 - [ ] 4.1 Port `stories` endpoints to Supabase (text/url/repost)
 - [ ] 4.2 Port `user` endpoints (profile, tags) dropping Prisma patterns
 - [ ] 4.3 Port `bookmark`, `upvote`, `follow` endpoints
-- [ ] 4.4 Add `/api/chat/reply` that maps chat msg to comment (stretch)
+- [ ] 4.4 Add `/api/chat/reply` that maps chat msg to comment
 
 ### Phase 5 – Front-end Integration
-- [ ] 5.1 Wire Story composer toggle (chat vs story) – modify `NaviBar`
-- [ ] 5.2 Render story cards inside chat (CustomMessage renderer)
-- [ ] 5.3 Port legacy pages sequentially: Home → Profile → Tag view → Bookmarks → Settings/Trash
+- [ ] 5.1 Wire Story composer toggle (chat vs story) – modify UI
+- [ ] 5.2 Render story cards inside chat (Custom message renderer)
+- [ ] 5.3 Port legacy pages sequentially: Profile → Tag view → Bookmarks → Settings/Trash
 
 ### Phase 6 – Cleanup & Tests
-- [ ] 6.1 Remove unused legacy code / Clerk leftovers
+- [ ] 6.1 Remove unused legacy code
 - [ ] 6.2 Jest / Playwright tests for RLS & API routes
 - [ ] 6.3 Lighthouse + perf pass
 
-## Open Questions for User ✅
-1. **Prisma removal timeline** – okay to drop Prisma entirely now, or keep until API refactor done?
-2. **Edge function quotas** – heavy event fan-out via Edge functions is acceptable?
-3. **Imgix & Vercel Blob** – still desired for URL favicons? (requires env `NEXT_PUBLIC_IMGIX_DOMAIN`)
+## Native Supabase Chat Implementation (Completed) ✅
 
-*Please confirm or adjust priorities so I can start on Phase 1 migrations.*
+### Summary
+Successfully built native chat/feed stored in Postgres with Supabase Realtime.
+
+### Implementation Complete ✅
+- Full real-time chat with optimistic updates and reconciliation
+- Message persistence in Postgres with RLS
+- 90-day retention via pg_cron
+- Edge Function for rate-limiting and message validation
+- Comprehensive stress testing tools
+- Infinite scroll with smart pagination (50 messages per batch)
+- Clickable @username mentions linking to profiles
+
+### Performance Testing Capabilities
+1. **UI Stress Test** (`/home/stress-test`)
+   - Configurable burst testing (messages/concurrency)
+   - Sustained load testing
+   - Real-time latency measurement
+   - Live metrics dashboard
+
+2. **Console Utilities** (available on any page)
+   ```javascript
+   const tester = new ChatStressTester();
+   await tester.runBurstTest({ messageCount: 100, concurrency: 10 });
+   await tester.runSpikeTest(50); // 50 simultaneous messages
+   await tester.measureRealtimeLatency(10);
+   ```
+
+### Key Learnings
+1. **State closure issues** - React subscriptions can capture stale state; use functional updates
+2. **RLS gotchas** - UPSERT tries SELECT first, can fail RLS; use INSERT with conflict handling
+3. **Realtime setup** - Tables need explicit publication and replica identity for change streaming
+4. **Client reconciliation** - Use client_id as primary key to handle optimistic updates cleanly
+5. **Pagination best practices** - 50 messages per load, debounce scroll triggers, prevent rapid DB hits
 
 ## Project Status Board
 - [x] Phase 1 – DB & RLS *(completed)*
-- [x] Phase 2 – Remove Prisma Layer *(tsconfig exclude legacy build fix)*
-- [ ] Phase 3 – Edge Functions *(in_progress)*
+- [x] Phase 2 – Remove Prisma Layer *(completed)*
+- [ ] **Phase 3 – Edge Functions** *(current)*
 - [ ] Phase 4 – API Routes
 - [ ] Phase 5 – Front-end Integration
 - [ ] Phase 6 – Polish
 
-## Executor's Feedback or Assistance Requests
-- Starting Task **3.1**: Will create a Supabase Edge Function `story-to-chat` that listens for new rows in `Story`, formats a compact card payload, and sends a message to Stream Chat global channel via server SDK. Need to decide: use Net HTTP call from Postgres trigger vs. Realtime Webhook? Plan: Postgres trigger → HTTP POST to edge function (like sync-stream-user). Acceptable? (Edge function quota fine per user.)
-- Build errors resolved by excluding `old-code/**` from TS compilation. ✅
-- Ready to implement Task **3.1 story-to-chat**. Need confirmation on approach:
-  • Use Postgres trigger AFTER INSERT ON "Story" that makes `http_post` to Edge Function `story-to-chat` (similar to `sync-stream-user`).
-  • Edge Function will use Stream Chat server SDK to post a formatted story card into `global-chat` channel.
-  • Alternative is Realtime webhook but that adds latency.
+## Current Task: Phase 3 – Edge Functions
 
-Please confirm trigger→edge function approach is acceptable, and provide any payload/format requirements for the chat message.
+### 3.1 `story-to-chat` Edge Function (Active)
+Create an edge function that:
+1. Triggers on new Story inserts (via Postgres trigger)
+2. Formats story data as a structured chat message
+3. Inserts formatted message into `chat_messages` table
+4. Includes story metadata for rendering story cards in chat
+
+Implementation approach:
+- Create Postgres trigger `AFTER INSERT ON "Story"`
+- Trigger calls Edge Function via HTTP POST
+- Edge Function formats story and inserts into chat
+- Message includes special `message_type: 'story'` and story data in metadata
+
+### 3.2 `chat-reply-to-comment`
+Edge function to sync chat replies that reference stories back to the Comment table.
+- Monitor chat messages for replies to story messages
+- Extract story reference and create Comment record
+- Maintain bidirectional sync between chat and comments
+
+## Executor's Feedback or Assistance Requests
+- ✅ Successfully built native chat solution from scratch
+- ✅ Main page redirects to `/home` 
+- ✅ Navigation simplified to single Home link
+- ✅ All external chat dependencies removed
+- ✅ Fixed build errors (missing autoprefixer)
+- Ready to implement `story-to-chat` edge function for story/chat integration
 
 ## Lessons
 *(collect recurring gotchas here)*
@@ -91,12 +138,58 @@ Please confirm trigger→edge function approach is acceptable, and provide any p
 ### Guidance from User (2025-07-07)
 > We will **not** run any legacy code.  Use old-code only for reference.  Copy UI/UX primitives (layout, components).  Re-implement data access fresh against Supabase.  Work feature-by-feature, test each before next.
 
-### Methodology Update
-- Treat `old-code/src/components/**` as design library to cherry-pick.
-- For each feature:
-  1. Identify UI components needed (reuse/copy).
-  2. Design fresh API route / Supabase queries.
-  3. Implement + write minimal tests.
-  4. Tick checkbox before moving on.
+### Native Chat Decision (2025-07-08)
+> Built our own chat solution using Postgres + Supabase Realtime. Full control over features and data.
 
-(Added per user instruction – no Prisma dependency will survive.) 
+### Route Rename (2025-07-08)
+> Renamed `/chat` route to `/home` to better reflect its purpose as the main landing page after login. 
+
+# Diino Project - Multi-Agent System Scratchpad
+
+## Background and Motivation
+We are building Diino, a social storytelling platform with real-time chat functionality. The system uses Supabase for authentication, database, and real-time features. The tech stack includes Next.js, TypeScript, Tailwind CSS, and Radix UI components.
+
+### Current Implementation Status
+1. Successfully removed all Stream Chat dependencies and components
+2. Migrated from /chat to /home routes
+3. Implemented native Supabase chat with PostgreSQL
+4. Fixed build errors and server is running on http://localhost:3000
+5. **NEW**: Implemented tag creation system (required for posting stories)
+6. **NEW**: Created `/post` page with NaviBar for story creation
+7. **NEW**: Enhanced profile page with tag management
+
+### Tag System Implementation (Just Completed)
+- Created `/api/tags` route for fetching and creating tags
+- Built `TagManager` component for UI
+- Added to home page above chat section
+- Created RLS policies migration (needs to be applied)
+- Tags follow the two-table structure:
+  - `CanonicalTag` - Global registry of unique tag names
+  - `UserTag` - User's ownership/association with tags
+
+### Post Creation Implementation (Just Completed)
+- Created `/post` page with NaviBar component
+- Ported NaviBar from old code with Supabase adaptations
+- Created `/api/stories` route for story creation
+- Created `/api/fetch-url` route for URL metadata (simple version)
+- Added "Create Post" to sidebar navigation
+- Profile page now shows TagManager for own profile
+- Profile page includes "Create a Post" button
+
+## Project Status Board
+
+### Completed ✅
+- [x] Remove all Stream Chat dependencies
+- [x] Rename /chat route to /home
+- [x] Fix build errors
+- [x] Implement tag creation system
+- [x] Create /post page for story creation
+- [x] Update profile page with tag management
+
+### To Do
+- [ ] Apply tag RLS policies migration to enable tag creation
+- [ ] Test the posting functionality end-to-end
+- [ ] Phase 3.1: Create `story-to-chat` edge function
+- [ ] Phase 3.2: Create `like-story` edge function  
+- [ ] Phase 4.1: Implement story listing/display
+- [ ] Phase 4.2: Add story interactions (like, bookmark, repost)

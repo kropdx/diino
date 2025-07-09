@@ -27,13 +27,23 @@ npm run lint
 
 Note: No test framework is currently configured. When tests are added, update this file with test commands.
 
+## Technology Stack
+
+- **Framework**: Next.js 15.1+ with App Router
+- **Language**: TypeScript
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **Chat**: Native Supabase Realtime + Postgres
+- **UI Components**: Radix UI + Shadcn/ui
+- **Styling**: Tailwind CSS
+- **Forms**: React Hook Form + Zod
+
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: Next.js 15.3.5 with App Router, React 19, TypeScript 5.8.3
 - **Styling**: Tailwind CSS 3.4.17 with shadcn/ui components
-- **Backend**: Supabase (PostgreSQL, Auth) + Stream Chat (messaging)
-- **Chat**: Stream Chat React SDK for real-time messaging
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **Chat**: Native Supabase Realtime + Postgres
 - **State**: React hooks (no external state management)
 
 ### Key Patterns
@@ -67,10 +77,8 @@ Single `messages` table with:
 
 Required environment variables in `.env.local`:
 ```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_STREAM_API_KEY=your_stream_api_key
-STREAM_API_SECRET=your_stream_api_secret
 ```
 
 ## Key Implementation Details
@@ -81,12 +89,11 @@ STREAM_API_SECRET=your_stream_api_secret
 3. Supabase Auth manages sessions
 4. Logout is a server action at `/app/(auth)/logout/route.ts`
 
-### Real-time Messaging (Stream Chat)
-1. `StreamChatInterface.tsx` initializes Stream Chat client with user authentication
-2. Users are automatically synced with Stream Chat on signup
-3. Token generation handled by `/api/stream/token` endpoint
-4. Messages are managed by Stream Chat's infrastructure
-5. Built-in features: typing indicators, read receipts, threads, reactions
+### Real-time Messaging (Native Supabase Chat)
+1. Chat messages are stored in PostgreSQL with RLS
+2. Real-time updates via Supabase Realtime subscriptions
+3. Edge Function handles rate limiting and message validation
+4. 90-day message retention via pg_cron
 
 ### Styling Approach
 - Tailwind CSS utilities with CSS variables for theming
