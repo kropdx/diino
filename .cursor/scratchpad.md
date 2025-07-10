@@ -130,6 +130,8 @@ Edge function to sync chat replies that reference stories back to the Comment ta
 - ✅ Navigation simplified to single Home link
 - ✅ All external chat dependencies removed
 - ✅ Fixed build errors (missing autoprefixer)
+- 🛠️ Eliminated TypeScript diagnostics in `supabase/functions/send-message` by adding a `deno.json` import map, VSCode Deno settings, and refactored import specifiers.
+- 🛠️ Updated tag displays in story cards to link to `/${username}/${tagName}` in both tag feed and user-tag pages.
 - Ready to implement `story-to-chat` edge function for story/chat integration
 
 ## Lessons

@@ -7,6 +7,7 @@ import { Tag, Calendar, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import CommentsSection from '@/components/CommentsSection';
 
 interface Story {
   story_id: string;
@@ -137,25 +138,27 @@ export default function TagFeedPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-primary">
+                    <Link
+                      href={`/${story.author.username}/${story.user_tag.tag.name}${story.subtag ? `.${story.subtag}` : ''}`}
+                      className="text-primary hover:underline"
+                    >
                       #{story.user_tag.tag.name}
                       {story.subtag && `.${story.subtag}`}
-                    </span>
+                    </Link>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <Link href={`/${story.author.username}/${story.short_id}`}>
+                <Link href={`/${story.author.username}/${story.user_tag.tag.name}/${story.short_id}`}> 
                   <p className="text-sm whitespace-pre-wrap mb-3">{story.content}</p>
-                  
                   {story.url && (
                     <div className="border rounded-lg p-3 bg-muted/30 hover:bg-muted/50 transition-colors">
                       <div className="flex items-start gap-2">
                         {story.favicon && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img 
-                            src={story.favicon} 
-                            alt="" 
+                          <img
+                            src={story.favicon}
+                            alt=""
                             className="size-4 mt-0.5"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -175,6 +178,7 @@ export default function TagFeedPage() {
                     </div>
                   )}
                 </Link>
+                <CommentsSection storyId={story.story_id} />
               </CardContent>
             </Card>
           ))
@@ -182,4 +186,4 @@ export default function TagFeedPage() {
       </div>
     </div>
   );
-} 
+}

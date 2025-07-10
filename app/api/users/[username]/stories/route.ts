@@ -12,6 +12,7 @@ export async function GET(
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const tagName = searchParams.get('tag');
+    const subtag = searchParams.get('subtag');
     
     // Get the user by username
     const { data: targetUser, error: userError } = await supabase
@@ -57,6 +58,10 @@ export async function GET(
       }
 
       query = query.eq('user_tag_id', userTags[0].user_tag_id);
+
+      if (subtag) {
+        query = query.eq('subtag', subtag);
+      }
     }
 
     const { data: stories, error: storiesError } = await query;

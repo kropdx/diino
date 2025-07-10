@@ -8,7 +8,9 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { tagName } = await params;
-    
+
+    const [baseTag, subtag] = tagName.split('.');
+
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -30,7 +32,7 @@ export async function GET(
     const { data: canonicalTag, error: tagError } = await supabase
       .from('CanonicalTag')
       .select('tag_id')
-      .eq('name', tagName)
+      .eq('name', baseTag)
       .single();
 
     if (tagError || !canonicalTag) {
@@ -39,7 +41,7 @@ export async function GET(
 
     // TODO: For now, we'll return stories from all users with this tag
     // In the future, we'll implement a following system and filter by followed users
-    const { data: stories, error: storiesError } = await supabase
+    let storyQuery = supabase
       .from('Story')
       .select(`
         *,
@@ -49,7 +51,13 @@ export async function GET(
           tag:CanonicalTag!inner(*)
         )
       `)
-      .eq('user_tag.tag.tag_id', canonicalTag.tag_id)
+      .eq('user_tag.tag.tag_id', canonicalTag.tag_id);
+
+    if (subtag) {
+      storyQuery = storyQuery.eq('subtag', subtag);
+    }
+
+    const { data: stories, error: storiesError } = await storyQuery
       .order('created_at', { ascending: false })
       .limit(50);
 
