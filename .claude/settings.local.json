@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(gh auth:*)",
+      "mcp__supabase__apply_migration",
+      "Bash(npm run lint)"
+    ],
+    "deny": []
+  }
+}

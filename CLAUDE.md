@@ -27,12 +27,23 @@ npm run lint
 
 Note: No test framework is currently configured. When tests are added, update this file with test commands.
 
+## Technology Stack
+
+- **Framework**: Next.js 15.1+ with App Router
+- **Language**: TypeScript
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **Chat**: Native Supabase Realtime + Postgres
+- **UI Components**: Radix UI + Shadcn/ui
+- **Styling**: Tailwind CSS
+- **Forms**: React Hook Form + Zod
+
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: Next.js 15.3.5 with App Router, React 19, TypeScript 5.8.3
 - **Styling**: Tailwind CSS 3.4.17 with shadcn/ui components
-- **Backend**: Supabase (PostgreSQL, Auth, Realtime)
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **Chat**: Native Supabase Realtime + Postgres
 - **State**: React hooks (no external state management)
 
 ### Key Patterns
@@ -66,7 +77,7 @@ Single `messages` table with:
 
 Required environment variables in `.env.local`:
 ```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
@@ -78,11 +89,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 3. Supabase Auth manages sessions
 4. Logout is a server action at `/app/(auth)/logout/route.ts`
 
-### Real-time Messaging
-1. `ChatInterface.tsx` subscribes to Supabase Realtime on mount
-2. Messages are fetched on load and updated via subscription
-3. New messages trigger real-time updates for all connected clients
-4. Message insertion requires authentication (RLS policy)
+### Real-time Messaging (Native Supabase Chat)
+1. Chat messages are stored in PostgreSQL with RLS
+2. Real-time updates via Supabase Realtime subscriptions
+3. Edge Function handles rate limiting and message validation
+4. 90-day message retention via pg_cron
 
 ### Styling Approach
 - Tailwind CSS utilities with CSS variables for theming

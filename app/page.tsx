@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import StreamChatInterface from '@/components/StreamChatInterface'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -11,9 +10,6 @@ export default async function Home() {
     redirect('/login')
   }
 
-  return (
-    <main className="flex min-h-screen flex-col">
-      <StreamChatInterface />
-    </main>
-  )
+  // Redirect to home (chat)
+  redirect('/home')
 }

@@ -24,6 +24,17 @@ export async function createClient() {
           }
         },
       },
+      auth: {
+        debug: process.env.NODE_ENV === 'development'
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'diino-server'
+        }
+      }
     }
   )
 }
