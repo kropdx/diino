@@ -64,7 +64,7 @@ export function AppSidebar() {
     },
     {
       title: 'Profile',
-      url: userProfile ? `/${userProfile.username}` : '#',
+      url: userProfile?.username ? `/${userProfile.username}` : '#',
       icon: User,
     },
     {
@@ -132,7 +132,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className="border-t">
-        {userProfile && (
+        {userProfile?.username && (
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === `/${userProfile.username}`}>

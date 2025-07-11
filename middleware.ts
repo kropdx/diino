@@ -59,15 +59,15 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // If no profile exists and not on onboarding page, redirect to onboarding
-    if (!profile && !isOnboardingRoute) {
+    // If no username exists and not on onboarding page, redirect to onboarding
+    if ((!profile || !profile.username) && !isOnboardingRoute) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = '/onboarding'
       return NextResponse.redirect(redirectUrl)
     }
 
-    // If profile exists and on onboarding or auth pages, redirect to home
-    if (profile && (isOnboardingRoute || isAuthRoute)) {
+    // If username exists and on onboarding or auth pages, redirect to home
+    if (profile?.username && (isOnboardingRoute || isAuthRoute)) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = '/'
       return NextResponse.redirect(redirectUrl)

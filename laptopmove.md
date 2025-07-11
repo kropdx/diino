@@ -30,46 +30,46 @@ This is the proposed plan to set up the project. Each step will be executed one 
 
 ### Phase 2: Core Project Setup
 
-1.  **Install Node.js dependencies:** Run `npm install`.
+1.  **Install Node.js & npm:** The user needs to install Node.js (which includes npm) on the new machine. The LTS version from [https://nodejs.org/](https://nodejs.org/) is recommended.
+2.  **Install Node.js dependencies:** Run `npm install`.
     *   **Success Criteria:** `npm install` completes without errors. A `node_modules` directory is created.
-2.  **Inspect Tailwind CSS configuration:** Check `tailwind.config.ts`. This is mostly for my own understanding.
+3.  **Inspect Tailwind CSS configuration:** Check `tailwind.config.ts`. This is mostly for my own understanding.
     *   **Success Criteria:** I understand how Tailwind is configured.
 
-### Phase 3: Supabase Setup
-
-1.  **Check for Supabase CLI:** The `package.json` file should tell us if it's a dev dependency. If not, I'll advise on installing it.
-    *   **Success Criteria:** I know how the Supabase CLI is managed in this project.
-2.  **Start Supabase services:** Run the command to start local Supabase services (e.g., `supabase start`).
-    *   **Success Criteria:** Supabase docker containers are running and the local Supabase instance is accessible.
-
-### Phase 4: Environment Configuration
+### Phase 3: Cloud Environment Setup
 
 1.  **Identify required environment variables:** Search the codebase for `process.env`.
     *   **Success Criteria:** I have a list of environment variables used in the project.
-2.  **Create `.env.local` file:** Create a `.env.local` file with placeholder values for the user to fill in. I'll probably find the Supabase keys from the `supabase status` command output.
+2.  **User creates `.env.local` with cloud Supabase keys:** Create a `.env.local` file with placeholder values for the user to fill in. I'll probably find the Supabase keys from the `supabase status` command output.
     *   **Success Criteria:** A `.env.local` file exists with the necessary variables.
+
+### Phase 4: Run the Application
+
+1.  **Run `npm run dev` to start the development server:** Start the application.
+    *   **Success Criteria:** The application starts successfully and is accessible in the browser without authentication or connection errors.
 
 ## Project Status Board
 
-*   [ ] **Phase 1: Resolve Git Conflicts**
+*   [x] **Phase 1: Resolve Git Conflicts**
     *   [x] Analyze conflicts in `package.json`
     *   [x] Propose resolution for `package.json`
     *   [x] Resolve `package.json` and `package-lock.json`
     *   [x] Analyze and resolve conflicts in other files
-    *   [ ] Commit the merge
-*   [ ] **Phase 2: Core Project Setup**
-    *   [ ] Install Node.js dependencies
-    *   [ ] Inspect Tailwind CSS configuration
-*   [ ] **Phase 3: Supabase Setup**
-    *   [ ] Check for Supabase CLI
-    *   [ ] Start Supabase services
-*   [ ] **Phase 4: Environment Configuration**
-    *   [ ] Identify required environment variables
-    *   [ ] Create `.env.local` file
+    *   [x] Commit the merge
+*   [x] **Phase 2: Core Project Setup**
+    *   [x] Install Node.js & npm
+    *   [x] Install Node.js dependencies
+    *   [x] Inspect Tailwind CSS configuration
+*   [x] **Phase 3: Cloud Environment Setup**
+    *   [x] Identify required environment variables
+    *   [x] User creates `.env.local` with cloud Supabase keys
+*   [ ] **Phase 4: Run the Application**
+    *   [ ] Run `npm run dev` to start the development server.
+    *   **Success Criteria:** The application starts successfully and is accessible in the browser without authentication or connection errors.
 
 ## Executor's Feedback or Assistance Requests
 
-*Awaiting plan approval to begin with Phase 1.*
+*Ready to run the application.*
 
 ## Lessons
 

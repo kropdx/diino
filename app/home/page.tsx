@@ -83,21 +83,35 @@ export default function ChatPage() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       console.log('[CHAT] Auth check:', currentUser?.id === user.id ? 'OK' : 'MISMATCH');
       
-      const { error: joinError } = await supabase
-       .from("chat_members")
-       .insert({ room_id: roomId, user_id: user.id });
+      // Check if user is already a member before trying to insert
+      const { data: existingMember, error: checkError } = await supabase
+        .from('chat_members')
+        .select('user_id')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is expected if the user isn't a member.
+        // We only want to log other, unexpected errors.
+        console.error('[CHAT] Error checking for member:', checkError);
+      }
       
-      if (joinError) {
-        // If it's a unique constraint error, that's OK - already a member
-        if (joinError.code === '23505') {
-          console.log('[CHAT] Already a member of room');
-          setDebugInfo(prev => ({ ...prev, joined: true }));
+      if (!existingMember) {
+        const { error: joinError } = await supabase
+         .from("chat_members")
+         .insert({ room_id: roomId, user_id: user.id });
+        
+        if (joinError) {
+            console.error('[CHAT] Join room error:', joinError);
+            console.error('[CHAT] Join room error details:', JSON.stringify(joinError, null, 2));
+            setDebugInfo(prev => ({ ...prev, lastError: joinError.message || JSON.stringify(joinError) }));
         } else {
-          console.error('[CHAT] Join room error:', joinError);
-          setDebugInfo(prev => ({ ...prev, lastError: joinError.message }));
+          console.log('[CHAT] Successfully joined room');
+          setDebugInfo(prev => ({ ...prev, joined: true }));
         }
       } else {
-        console.log('[CHAT] Successfully joined room');
+        console.log('[CHAT] User is already a member of the room.');
         setDebugInfo(prev => ({ ...prev, joined: true }));
       }
 
@@ -274,18 +288,32 @@ export default function ChatPage() {
     setText("");
     scrollToBottom();
 
-    const { data, error } = await supabase.functions.invoke("send-message", {
-      body: {
-        room_id: roomId,
-        content: optimistic.content,
-        client_id: clientId,
-      },
-    });
-    if (error) {
-      console.error('[CHAT] Send error:', error);
-      setDebugInfo(prev => ({ ...prev, lastError: error.message }));
-    } else {
-      console.log('[CHAT] Message sent successfully:', data);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-message", {
+        body: {
+          room_id: roomId,
+          content: optimistic.content,
+          client_id: clientId,
+        },
+      });
+      if (error) {
+        console.error('[CHAT] Send error:', error);
+        console.error('[CHAT] Send error details:', JSON.stringify(error, null, 2));
+        setDebugInfo(prev => ({ ...prev, lastError: error.message || JSON.stringify(error) }));
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter(m => m.client_id !== clientId));
+        messageIds.current.delete(clientId);
+        delete pending.current[clientId];
+      } else {
+        console.log('[CHAT] Message sent successfully:', data);
+      }
+    } catch (err) {
+      console.error('[CHAT] Send exception:', err);
+      setDebugInfo(prev => ({ ...prev, lastError: err instanceof Error ? err.message : 'Unknown error' }));
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter(m => m.client_id !== clientId));
+      messageIds.current.delete(clientId);
+      delete pending.current[clientId];
     }
   };
 
@@ -457,8 +485,10 @@ export default function ChatPage() {
     <div className="flex flex-col h-full p-4 gap-4">
       <div className="bg-gray-100 p-2 text-xs rounded">
         Debug: {user?.id?.slice(0,8)} | Room: {roomId.slice(-8)} | Joined: {debugInfo.joined ? 'Y' : 'N'} | 
-        Sub: {debugInfo.subStatus} | Msgs: {debugInfo.msgCount} |
-        {debugInfo.lastError && ` Error: ${debugInfo.lastError}`}
+        Sub: {debugInfo.subStatus} | Msgs: {debugInfo.msgCount}
+        {debugInfo.lastError && (
+          <div className="text-red-600 mt-1">Error: {debugInfo.lastError}</div>
+        )}
       </div>
       <div className="text-xs text-gray-500">
         Messages in state: {messages.length} | IDs: {messages.map(m => m.id > 0 ? m.id : '...').join(', ')}

@@ -34,7 +34,7 @@ export default function OnboardingPage() {
     setCheckingUsername(true)
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('User')
         .select('username')
         .eq('username', usernameToCheck)
         .single()
@@ -72,23 +72,24 @@ export default function OnboardingPage() {
         throw new Error('Username is not available')
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
+      // Update the User table with the profile information
+      const { error: updateError } = await supabase
+        .from('User')
+        .update({
           username: username.toLowerCase(),
           display_name: displayName || username,
           bio,
-          website_url: websiteUrl
+          url: websiteUrl,
+          onboarded: true
         })
+        .eq('user_id', user.id)
 
-      if (profileError) {
-        throw profileError
+      if (updateError) {
+        throw updateError
       }
 
-      // Redirect to main app
-      router.push('/')
+      // Force refresh the auth state
+      window.location.href = '/home'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
