@@ -157,7 +157,7 @@ We are building Diino, a social storytelling platform with real-time chat functi
 3. Implemented native Supabase chat with PostgreSQL
 4. Fixed build errors and server is running on http://localhost:3000
 5. **NEW**: Implemented tag creation system (required for posting stories)
-6. **NEW**: Created `/post` page with NaviBar for story creation
+6. **NEW**: Created `/post` page with story creation
 7. **NEW**: Enhanced profile page with tag management
 
 ### Tag System Implementation (Just Completed)

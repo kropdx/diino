@@ -80,7 +80,6 @@ export default function StressTestPage() {
     console.log(`Starting burst test: ${messageCount} messages with ${concurrency} concurrent requests`);
     const startTime = Date.now();
     
-    const batches = [];
     for (let i = 0; i < messageCount; i += concurrency) {
       if (abortRef.current) break;
       
@@ -133,7 +132,7 @@ export default function StressTestPage() {
       channel
         .on("postgres_changes", 
           { event: "INSERT", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` },
-          (payload: any) => {
+          (payload: { new: { metadata?: { test?: boolean; timestamp?: number } } }) => {
             if (payload.new.metadata?.test && payload.new.metadata?.timestamp) {
               const latency = Date.now() - payload.new.metadata.timestamp;
               latencies.push(latency);
@@ -209,7 +208,7 @@ export default function StressTestPage() {
     
     const interval = setInterval(() => {
       if ('memory' in performance) {
-        const memory = (performance as any).memory;
+        const memory = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
         console.log(`Memory: ${Math.round(memory.usedJSHeapSize / 1048576)}MB / ${Math.round(memory.totalJSHeapSize / 1048576)}MB`);
       }
     }, 5000);

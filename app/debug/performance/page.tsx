@@ -8,7 +8,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/AppLayout'
 
 export default function PerformanceDebugPage() {
-  const [summary, setSummary] = useState<Record<string, any>>({})
+  type SummaryStats = {
+    count: number;
+    totalDuration: number;
+    avgDuration: number;
+    minDuration: number;
+    maxDuration: number;
+  };
+  const [summary, setSummary] = useState<Record<string, SummaryStats>>({})
   const [slowQueries, setSlowQueries] = useState<PerformanceLog[]>([])
   const [allLogs, setAllLogs] = useState<PerformanceLog[]>([])
   const { user, profile, loading } = useAuth()
@@ -77,7 +84,7 @@ export default function PerformanceDebugPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(summary).map(([operation, stats]: [string, any]) => (
+                  {Object.entries(summary).map(([operation, stats]: [string, SummaryStats]) => (
                     <tr key={operation} className="border-b">
                       <td className="p-2 font-mono text-xs">{operation}</td>
                       <td className="text-right p-2">{stats.count}</td>
