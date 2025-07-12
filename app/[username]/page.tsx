@@ -11,6 +11,12 @@ import { TagManager } from '@/components/TagManager'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase/client'
 import { StoryCard } from '@/components/story-card'
+import { FollowTagsDialog } from '@/components/FollowTagsDialog'
+import { Database } from '@/lib/supabase/types'
+
+type UserTag = Database['public']['Tables']['UserTag']['Row'] & {
+  tag: Database['public']['Tables']['Tag']['Row']
+}
 
 interface Profile {
   id: string
@@ -27,6 +33,7 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [userTags, setUserTags] = useState<UserTag[]>([])
   
   useEffect(() => {
     fetchProfile()
@@ -46,6 +53,19 @@ export default function ProfilePage() {
       }
 
       setProfile(data)
+      
+      // Fetch user tags
+      const { data: tags } = await supabase
+        .from('UserTag')
+        .select(`
+          *,
+          tag:Tag(*)
+        `)
+        .eq('user_id', data.id)
+        
+      if (tags) {
+        setUserTags(tags as UserTag[])
+      }
     } catch (error) {
       console.error('Error fetching profile:', error)
       notFound()
@@ -86,7 +106,7 @@ export default function ProfilePage() {
                   </CardTitle>
                   <CardDescription>@{profile.username}</CardDescription>
                 </div>
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <div className="flex gap-2">
                     <Link href="/settings">
                       <Button variant="outline">Edit Profile</Button>
@@ -98,6 +118,12 @@ export default function ProfilePage() {
                       </Button>
                     </Link>
                   </div>
+                ) : (
+                  <FollowTagsDialog 
+                    targetUserId={profile.id}
+                    userTags={userTags}
+                    triggerButton={<Button variant="outline">Follow Tags</Button>}
+                  />
                 )}
               </div>
             </CardHeader>
@@ -316,7 +342,7 @@ function UserPosts({ username }: { username: string }) {
 
 // Component to display user's tags as links
 function UserTagLinks({ username }: { username: string }) {
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<{ name: string; user_tag_id: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -333,23 +359,23 @@ function UserTagLinks({ username }: { username: string }) {
           return;
         }
 
-        // Get user tags with canonical tag names
+        // Get user tags with tag names
         const { data: userTags, error } = await supabase
           .from('UserTag')
-          .select('tag_id')
+          .select(`
+            user_tag_id,
+            tag:Tag(name)
+          `)
           .eq('user_id', userData.user_id);
 
         if (!error && userTags) {
-          // Get canonical tag names
-          const tagIds = userTags.map(ut => ut.tag_id);
-          const { data: canonicalTags } = await supabase
-            .from('CanonicalTag')
-            .select('name')
-            .in('tag_id', tagIds);
-
-          if (canonicalTags) {
-            setTags(canonicalTags.map(t => t.name));
-          }
+          const tagData = userTags
+            .filter(ut => ut.tag && typeof ut.tag === 'object' && 'name' in ut.tag)
+            .map(ut => ({
+              name: (ut.tag as { name: string }).name,
+              user_tag_id: ut.user_tag_id
+            }));
+          setTags(tagData);
         }
       } catch (error) {
         console.error('Error fetching user tags:', error);
@@ -371,14 +397,14 @@ function UserTagLinks({ username }: { username: string }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {tags.map((tagName) => (
+      {tags.map((tag) => (
         <Link
-          key={tagName}
-          href={`/${username}/${tagName}`}
+          key={tag.user_tag_id}
+          href={`/${username}/${tag.name}`}
           className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 rounded-full transition-colors"
         >
           <Tag className="size-3" />
-          #{tagName}
+          #{tag.name}
         </Link>
       ))}
     </div>

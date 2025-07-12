@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 interface UserTag {
   user_tag_id: string;
@@ -82,13 +83,16 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
-        <div className="px-2 py-4">
+        <div className="flex items-center justify-between px-2 py-4">
           <h2 className="text-lg font-semibold px-2">Diino</h2>
+          <ThemeToggle />
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="h-8 px-2 flex items-center text-xs font-medium text-sidebar-foreground/70 uppercase">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -107,7 +111,9 @@ export function AppSidebar() {
         
         {userTags.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Tags</SidebarGroupLabel>
+            <SidebarGroupLabel className="h-8 px-2 flex items-center text-xs font-medium text-sidebar-foreground/70 uppercase">
+              Tags
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {userTags.map((userTag) => (
