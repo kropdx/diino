@@ -483,25 +483,25 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
-      <div className="bg-gray-100 p-2 text-xs rounded">
+      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-xs rounded">
         Debug: {user?.id?.slice(0,8)} | Room: {roomId.slice(-8)} | Joined: {debugInfo.joined ? 'Y' : 'N'} | 
         Sub: {debugInfo.subStatus} | Msgs: {debugInfo.msgCount}
         {debugInfo.lastError && (
           <div className="text-red-600 mt-1">Error: {debugInfo.lastError}</div>
         )}
       </div>
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-500 dark:text-gray-400">
         Messages in state: {messages.length} | IDs: {messages.map(m => m.id > 0 ? m.id : '...').join(', ')}
       </div>
       
       {/* Pagination Debug Panel */}
-      <div className="bg-yellow-50 border border-yellow-200 p-2 text-xs rounded space-y-1">
-        <div className="font-semibold text-yellow-800">🔍 Pagination Debug</div>
-        <div>Load Count: {paginationDebug.loadCount} | Last Batch: {paginationDebug.lastBatchSize} messages</div>
-        <div>Filtered to: {paginationDebug.filteredCount} unique | Duplicates: {paginationDebug.duplicatesFound}</div>
-        <div>Query Time: {paginationDebug.queryTime} | Total Tracked: {paginationDebug.totalMessagesTracked}</div>
-        <div>Oldest Message: {oldestMessageTime ? new Date(oldestMessageTime).toLocaleTimeString() : 'N/A'}</div>
-        <div>Has More: {hasMore ? 'YES' : 'NO'} | Loading: {loadingMore ? 'YES' : 'NO'}</div>
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-2 text-xs rounded space-y-1">
+        <div className="font-semibold text-yellow-800 dark:text-yellow-200">🔍 Pagination Debug</div>
+        <div className="text-gray-700 dark:text-gray-300">Load Count: {paginationDebug.loadCount} | Last Batch: {paginationDebug.lastBatchSize} messages</div>
+        <div className="text-gray-700 dark:text-gray-300">Filtered to: {paginationDebug.filteredCount} unique | Duplicates: {paginationDebug.duplicatesFound}</div>
+        <div className="text-gray-700 dark:text-gray-300">Query Time: {paginationDebug.queryTime} | Total Tracked: {paginationDebug.totalMessagesTracked}</div>
+        <div className="text-gray-700 dark:text-gray-300">Oldest Message: {oldestMessageTime ? new Date(oldestMessageTime).toLocaleTimeString() : 'N/A'}</div>
+        <div className="text-gray-700 dark:text-gray-300">Has More: {hasMore ? 'YES' : 'NO'} | Loading: {loadingMore ? 'YES' : 'NO'}</div>
       </div>
       
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-2">

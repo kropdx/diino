@@ -100,7 +100,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span className="uppercase text-xs font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
