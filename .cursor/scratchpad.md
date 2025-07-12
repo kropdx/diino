@@ -102,6 +102,14 @@ Successfully built native chat/feed stored in Postgres with Supabase Realtime.
 - [ ] Phase 4 – API Routes
 - [ ] Phase 5 – Front-end Integration
 - [ ] Phase 6 – Polish
+- [ ] Phase 7 – Follow System (NEW)
+
+### Phase 7 – Follow System (NEW)
+- [ ] 7.1 DB migration: create Follow table + RLS
+- [ ] 7.2 API route /api/follows (Follow All)
+- [ ] 7.3 Feed query update util
+- [ ] 7.4 Front-end follow buttons
+- [ ] 7.5 Tests & benchmarks
 
 ## Current Task: Phase 3 – Edge Functions
 
@@ -133,6 +141,11 @@ Edge function to sync chat replies that reference stories back to the Comment ta
 - 🛠️ Eliminated TypeScript diagnostics in `supabase/functions/send-message` by adding a `deno.json` import map, VSCode Deno settings, and refactored import specifiers.
 - 🛠️ Updated tag displays in story cards to link to `/${username}/${tagName}` in both tag feed and user-tag pages.
 - Ready to implement `story-to-chat` edge function for story/chat integration
+- 🛠️ Created migration `20250712000000_follow.sql` introducing `Follow` table with RLS and indexes. Awaiting user to apply migration via Supabase CLI.
+- 🛠️ Integrated IBM Plex Sans & Mono fonts:
+  - Added font families to `tailwind.config.ts`.
+  - Replaced Inter with IBM Plex in `app/layout.tsx`.
+  - Body now uses `font-sans` class with antialiasing.
 
 ## Lessons
 *(collect recurring gotchas here)*
@@ -195,3 +208,72 @@ We are building Diino, a social storytelling platform with real-time chat functi
 - [ ] Phase 3.2: Create `like-story` edge function  
 - [ ] Phase 4.1: Implement story listing/display
 - [ ] Phase 4.2: Add story interactions (like, bookmark, repost)
+
+## Upcoming Feature – Follow System Enhancements (Planner Draft)
+
+### Goal
+Provide three follow modes so users can curate their feeds:
+1. **Follow-All** – subscribe to every tag owned by a target user now and in the future.
+2. **Follow-Tag** – subscribe to a single tag from a target user (current behaviour).
+3. **Follow-All-Except** – subscribe to everything from a user except a chosen exclusion list of tags.
+
+### Core Ideas & Design
+1. **New Table: `UserFollow`**
+   ```sql
+   create table public."UserFollow" (
+     follower_user_id   uuid references "User"(user_id) on delete cascade,
+     followed_user_id   uuid references "User"(user_id) on delete cascade,
+     mode               text check (mode in ('ALL','ALL_EXCEPT')) not null,
+     exclude_tag_ids    uuid[] default '{}', -- only for ALL_EXCEPT mode
+     created_at         timestamptz default now(),
+     primary key (follower_user_id, followed_user_id)
+   );
+   ```
+   * RLS: follower manages own rows.
+
+2. **Keep existing `UserTagFollow` for per-tag follows** – no change.
+
+3. **Materialised View (optional): `vw_followed_user_tag_ids`**
+   Expands follow‐all rows into concrete `(follower_user_id, user_tag_id)` for fast feed queries.  Refresh via trigger when:
+   * a new `UserTag` is created (future tags auto-followed)
+   * a `UserFollow` row is inserted/updated/deleted.
+
+4. **Feed Query Changes**
+   Replace current tag follow join with union of:
+   * explicit `UserTagFollow`
+   * expanded IDs from view above.
+
+5. **API Endpoints**
+   * `POST /api/follows/user` body `{ followedUserId, mode, excludeTagIds? }`
+   * `DELETE /api/follows/user/:followedUserId`
+   * `POST /api/follows/tag` existing stays.
+
+6. **UI/UX**
+   * On profile page, add “Follow All”, “Unfollow”, and advanced “Follow All except …” (modal w/ checkboxes per tag).
+   * On tag chip, keep per-tag follow toggle.
+
+7. **Edge Cases**
+   * Switching modes should clean up conflicting rows (e.g. remove per-tag follows when switching to ALL).
+   * Exclusion list only applies when mode = ALL_EXCEPT.
+
+### High-level Task Breakdown
+1. **DB Migration**
+   * Create `UserFollow` table + RLS
+   * Create materialised view + triggers
+2. **API Layer**
+   * Implement `/api/follows/user` & update feed query util.
+3. **Front-end**
+   * Profile follow button group
+   * Exclusion modal component
+4. **Backfill/Consistency Script** (one-off) – migrate existing tag follows into new model where appropriate.
+5. **Tests**
+   * RLS tests for follow actions
+   * Feed integration test ensuring posts appear/disappear as expected for each mode.
+
+### Success Criteria
+- User can toggle between follow modes with immediate effect on feed.
+- Creating a new tag for an author propagates to their ALL followers automatically.
+- Feed query returns correct set under load (<100 ms for 50 stories).
+- No RLS bypass possible (followers can’t see private tags of others).
+
+*(Planner draft complete – awaiting review before execution)*

@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/AppLayout'
 import { TagManager } from '@/components/TagManager'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase/client'
+import { StoryCard } from '@/components/story-card'
 
 interface Profile {
   id: string
@@ -154,6 +155,17 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
+          {/* User's Posts Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Posts</CardTitle>
+              <CardDescription>Everything posted by @{username}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UserPosts username={username} />
+            </CardContent>
+          </Card>
+
           {/* Create Post Button - Only show for own profile */}
           {isOwnProfile && (
             <div className="flex justify-center pt-4">
@@ -168,6 +180,138 @@ export default function ProfilePage() {
       </div>
     </AppLayout>
   )
+}
+
+// Component to display user's posts
+interface UserStory {
+  story_id: string;
+  short_id: string;
+  content: string | null;
+  url: string | null;
+  title: string | null;
+  favicon: string | null;
+  favicon_blob_url: string | null;
+  subtag: string | null;
+  story_type: string;
+  created_at: string;
+  upvotes: number;
+  author_id: string;
+  author?: {
+    username: string;
+    display_name: string | null;
+  };
+  user_tag?: {
+    tag?: {
+      name: string;
+    };
+  };
+}
+
+interface TransformedStory {
+  id: string;
+  shortId: string;
+  content: string | null;
+  url: string | null;
+  title: string | null;
+  favicon: string | null;
+  faviconBlobUrl: string | null;
+  subtag: string | null;
+  storyType: string;
+  createdAt: string;
+  upvotes: number;
+  hasUpvoted: boolean;
+  hasBookmarked: boolean;
+  author: {
+    id: string;
+    username: string;
+    displayName: string | null;
+  };
+  userTag: {
+    tag: {
+      name: string;
+    };
+  };
+}
+
+function UserPosts({ username }: { username: string }) {
+  const [stories, setStories] = useState<TransformedStory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserStories = async () => {
+      try {
+        const response = await fetch(`/api/users/${username}/stories`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load posts');
+        }
+
+        const data = await response.json();
+        
+        // Transform the data to match StoryCard's expected format
+        const transformedStories = data.map((story: UserStory) => ({
+          id: story.story_id,
+          shortId: story.short_id,
+          content: story.content,
+          url: story.url,
+          title: story.title,
+          favicon: story.favicon,
+          faviconBlobUrl: story.favicon_blob_url,
+          subtag: story.subtag,
+          storyType: story.story_type,
+          createdAt: story.created_at,
+          upvotes: story.upvotes || 0,
+          hasUpvoted: false,
+          hasBookmarked: false,
+          author: {
+            id: story.author_id,
+            username: story.author?.username || username,
+            displayName: story.author?.display_name || null
+          },
+          userTag: {
+            tag: {
+              name: story.user_tag?.tag?.name || 'unknown'
+            }
+          }
+        }));
+        
+        setStories(transformedStories);
+      } catch (err) {
+        console.error('Error fetching user stories:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load posts');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserStories();
+  }, [username]);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading posts...</div>;
+  }
+
+  if (error) {
+    return <div className="text-sm text-red-500">Error: {error}</div>;
+  }
+
+  if (stories.length === 0) {
+    return <div className="text-sm text-muted-foreground">No posts yet.</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {stories.map((story) => (
+        <StoryCard
+          key={story.id}
+          story={story}
+          onUpvote={() => {}}
+          onBookmark={() => {}}
+        />
+      ))}
+    </div>
+  );
 }
 
 // Component to display user's tags as links

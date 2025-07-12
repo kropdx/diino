@@ -4,15 +4,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MoreHorizontal, Trash2, Bookmark, Repeat2 } from 'lucide-react';
+import { Heart, Bookmark, Repeat2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { FaviconImage } from '@/components/favicon-image';
 import CommentsSection from '@/components/CommentsSection';
@@ -83,7 +77,7 @@ export function StoryCard({
   story,
   onUpvote,
   isUpvoting,
-  onDelete,
+  onDelete: _onDelete,
   onBookmark,
   isBookmarking,
   onRepost,
@@ -95,13 +89,6 @@ export function StoryCard({
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onDelete && confirm('Are you sure you want to delete this story?')) {
-      onDelete(story.id);
-    }
-  };
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();

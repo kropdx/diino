@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, ExternalLink, Tag as TagIcon } from 'lucide-react';
+import { Calendar, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -79,7 +79,7 @@ export default function StoryPermalinkPage() {
             },
             user_tag: {
               tag: {
-                name: (tagRow as any).data?.name ?? tagName,
+                name: tagRow.data?.name ?? tagName,
               },
             },
           };
@@ -88,7 +88,7 @@ export default function StoryPermalinkPage() {
         } else {
           setError('Story data incomplete');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load story');
       } finally {
         setIsLoading(false);

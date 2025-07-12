@@ -8,7 +8,6 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { createClient } from '@/lib/supabase/client';
 
 interface Comment {
   comment_id: string;
@@ -23,7 +22,6 @@ interface Comment {
 }
 
 export default function CommentsSection({ storyId }: { storyId: string }) {
-  const supabase = createClient();
   const [comments, setComments] = useState<Comment[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);

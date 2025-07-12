@@ -6,25 +6,17 @@ import { ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-function Accordion(
-  {
-    type = 'single',
-    collapsible = true,
-    className,
-    ...props
-  }: React.ComponentProps<typeof AccordionPrimitive.Root> & {
-    className?: string;
-  }
-) {
-  return (
-    <AccordionPrimitive.Root
-      type={type}
-      collapsible={collapsible}
-      className={cn('w-full', className)}
-      {...props}
-    />
-  );
-}
+const Accordion = React.forwardRef<
+  React.ElementRef<typeof AccordionPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <AccordionPrimitive.Root
+    ref={ref}
+    className={cn('w-full', className)}
+    {...props}
+  />
+))
+Accordion.displayName = 'Accordion'
 
 function AccordionItem({ className, ...props }: React.ComponentProps<typeof AccordionPrimitive.Item>) {
   return <AccordionPrimitive.Item className={cn('border-b', className)} {...props} />;

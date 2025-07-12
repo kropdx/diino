@@ -38,7 +38,8 @@ export async function GET(
 
     // Map to client shape
     const mapped = (comments || []).map((c) => {
-      const upvoteArray = (c as any).CommentUpvote as { user_id: string }[] | null;
+      const commentWithUpvotes = c as typeof c & { CommentUpvote: { user_id: string }[] | null };
+      const upvoteArray = commentWithUpvotes.CommentUpvote;
       const upvotes = upvoteArray ? upvoteArray.length : 0;
       const hasUpvoted = !!upvoteArray?.some((u) => u.user_id === currentUserId);
       // We cannot check by email easily; will mark false for now
