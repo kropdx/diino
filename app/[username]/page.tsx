@@ -227,7 +227,10 @@ interface UserStory {
     display_name: string | null;
   };
   user_tag?: {
+    user_tag_id: string;
+    tag_id: string;
     tag?: {
+      tag_id: string;
       name: string;
     };
   };
@@ -275,6 +278,11 @@ function UserPosts({ username }: { username: string }) {
 
         const data = await response.json();
         
+        // Debug: Log the first story to see the structure
+        if (data.length > 0) {
+          console.log('First story data:', JSON.stringify(data[0], null, 2));
+        }
+        
         // Transform the data to match StoryCard's expected format
         const transformedStories = data.map((story: UserStory) => ({
           id: story.story_id,
@@ -295,9 +303,13 @@ function UserPosts({ username }: { username: string }) {
             username: story.author?.username || username,
             displayName: story.author?.display_name || null
           },
-          userTag: {
+          userTag: story.user_tag ? {
             tag: {
-              name: story.user_tag?.tag?.name || 'unknown'
+              name: story.user_tag.tag?.name || 'uncategorized'
+            }
+          } : {
+            tag: {
+              name: 'uncategorized'
             }
           }
         }));
@@ -364,16 +376,17 @@ function UserTagLinks({ username }: { username: string }) {
           .from('UserTag')
           .select(`
             user_tag_id,
-            tag:Tag(name)
+            tag:CanonicalTag(name)
           `)
           .eq('user_id', userData.user_id);
 
         if (!error && userTags) {
-          const tagData = userTags
-            .filter(ut => ut.tag && typeof ut.tag === 'object' && 'name' in ut.tag)
-            .map(ut => ({
-              name: (ut.tag as { name: string }).name,
-              user_tag_id: ut.user_tag_id
+          const rawUserTags = userTags as any[];
+          const tagData = rawUserTags
+            .filter((ut) => ut.tag && typeof ut.tag === 'object' && 'name' in ut.tag)
+            .map((ut) => ({
+              name: ut.tag.name as string,
+              user_tag_id: ut.user_tag_id as string,
             }));
           setTags(tagData);
         }

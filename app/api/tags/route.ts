@@ -109,11 +109,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tag name is required' }, { status: 400 });
     }
 
-    // Normalize tag name (lowercase, trim)
-    const normalizedTagName = tagName.trim().toLowerCase();
+    // Normalize tag name (lowercase, trim, remove leading #)
+    const normalizedTagName = tagName.trim().toLowerCase().replace(/^#/, '');
 
     if (normalizedTagName.length === 0) {
       return NextResponse.json({ error: 'Tag name cannot be empty' }, { status: 400 });
+    }
+
+    // Validate tag name format (alphanumeric, underscores, and hyphens only)
+    if (!/^[a-zA-Z0-9_-]+$/.test(normalizedTagName)) {
+      return NextResponse.json({ error: 'Tag names can only contain letters, numbers, underscores, and hyphens' }, { status: 400 });
     }
 
     // Get the user's profile

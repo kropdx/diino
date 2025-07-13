@@ -146,6 +146,11 @@ Edge function to sync chat replies that reference stories back to the Comment ta
   - Added font families to `tailwind.config.ts`.
   - Replaced Inter with IBM Plex in `app/layout.tsx`.
   - Body now uses `font-sans` class with antialiasing.
+- 🛠️ Fixed missing tags & double-# issue:
+  - Corrected Supabase join alias from `Tag` to `CanonicalTag` in `app/[username]/page.tsx` (both profile fetch & tag links).
+  - Added robust typing+casting in `UserTagLinks` to satisfy TypeScript.
+  - Sidebar labels already styled; tag list now renders properly instead of "No tags yet" and posts display the right tag names.
+  - Added migration `20250713000001_public_tags.sql` to allow public SELECT on `CanonicalTag` and `UserTag` (fixes third-party profile tag visibility).
 
 ## Lessons
 *(collect recurring gotchas here)*
@@ -234,14 +239,14 @@ Provide three follow modes so users can curate their feeds:
 2. **Keep existing `UserTagFollow` for per-tag follows** – no change.
 
 3. **Materialised View (optional): `vw_followed_user_tag_ids`**
-   Expands follow‐all rows into concrete `(follower_user_id, user_tag_id)` for fast feed queries.  Refresh via trigger when:
+   Expands follow-all rows into concrete `(follower_user_id, user_tag_id)` for fast feed queries.  Refresh via trigger when:
    * a new `UserTag` is created (future tags auto-followed)
    * a `UserFollow` row is inserted/updated/deleted.
 
 4. **Feed Query Changes**
    Replace current tag follow join with union of:
    * explicit `UserTagFollow`
-   * expanded IDs from view above.
+   * expanded IDs from the view above.
 
 5. **API Endpoints**
    * `POST /api/follows/user` body `{ followedUserId, mode, excludeTagIds? }`

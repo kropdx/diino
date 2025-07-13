@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, User, Users, Activity, Plus, Tag, ChevronRight } from 'lucide-react';
+import { Home, User, Users, Activity, Plus, Tag, ChevronRight, Rss } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -63,6 +63,11 @@ export function AppSidebar() {
   }, [userProfile]);
 
   const items = [
+    {
+      title: 'Feed',
+      url: '/feed',
+      icon: Rss,
+    },
     {
       title: 'Home',
       url: '/home',

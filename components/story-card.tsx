@@ -134,7 +134,7 @@ export function StoryCard({
   return (
     <Card className="p-4 space-y-3 hover:shadow-md transition-shadow">
       {/* Header & Content wrapped in link for permalink */}
-      <Link href={`/${story.author.username}/${story.userTag.tag.name}/${story.shortId}`}>
+      <Link href={`/${story.author.username}/${story.userTag?.tag?.name || 'uncategorized'}/${story.shortId}`}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">

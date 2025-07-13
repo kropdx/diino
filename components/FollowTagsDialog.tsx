@@ -26,9 +26,10 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
   const [activeTab, setActiveTab] = React.useState("all")
   const [selectedTags, setSelectedTags] = React.useState<string[]>([])
   const [excludedTags, setExcludedTags] = React.useState<string[]>([])
-  const [_currentFollows, setCurrentFollows] = React.useState<Follow[]>([])
+  const [currentFollows, setCurrentFollows] = React.useState<Follow[]>([])
   const [loading, setLoading] = React.useState(false)
   const [open, setOpen] = React.useState(false)
+  const [followStatus, setFollowStatus] = React.useState<'none' | 'all' | 'some'>('none')
   
   const { user } = useAuth()
   const supabase = createClient()
@@ -51,18 +52,31 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
       
       if (allFollow) {
         setActiveTab('all')
-        // Parse excluded tags from metadata if any
-        if (allFollow.metadata && typeof allFollow.metadata === 'object' && 'excluded_tags' in allFollow.metadata) {
-          setExcludedTags((allFollow.metadata as { excluded_tags?: string[] }).excluded_tags || [])
-        }
+        setFollowStatus('all')
+        // TODO: Handle excluded tags once metadata field is added to Follow table
+        setExcludedTags([])
       } else if (tagFollows.length > 0) {
         setActiveTab('tags')
         setSelectedTags(tagFollows.map(f => f.channel_id!))
+        setFollowStatus('some')
+      } else {
+        setActiveTab('none')
+        setFollowStatus('none')
       }
+    } else {
+      setActiveTab('none')
+      setFollowStatus('none')
     }
   }, [user, targetUserId, supabase])
 
-  // Fetch current follow status when dialog opens
+  // Fetch current follow status when component mounts and when dialog opens
+  React.useEffect(() => {
+    if (user) {
+      fetchCurrentFollows()
+    }
+  }, [user, fetchCurrentFollows])
+  
+  // Also fetch when dialog opens to ensure fresh data
   React.useEffect(() => {
     if (open && user) {
       fetchCurrentFollows()
@@ -91,15 +105,14 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         .in('channel_id', [targetUserId])
 
       // Then create new follows based on current selection
-      const followsToCreate: Omit<Database['public']['Tables']['Follow']['Insert'], 'follow_id' | 'created_at'>[] = []
+      const followsToCreate: Omit<Database['public']['Tables']['Follow']['Insert'], 'created_at'>[] = []
 
       if (activeTab === 'all') {
         // Following all tags
         followsToCreate.push({
           follower_user_id: user.id,
           channel_type: 'USER_ALL',
-          channel_id: targetUserId,
-          metadata: excludedTags.length > 0 ? { excluded_tags: excludedTags } : null
+          channel_id: targetUserId
         })
       } else if (activeTab === 'tags' && selectedTags.length > 0) {
         // Following specific tags
@@ -115,9 +128,13 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         followsToCreate.push({
           follower_user_id: user.id,
           channel_type: 'USER_ALL',
-          channel_id: targetUserId,
-          metadata: { excluded_tags: excludedTags }
+          channel_id: targetUserId
         })
+        // TODO: Handle excluded tags - need to add metadata field to Follow table
+        // or create a separate table for exclusions
+      } else if (activeTab === 'none') {
+        // Unfollowing all - no follows to create
+        // The delete operation above already removed all follows
       }
 
       if (followsToCreate.length > 0) {
@@ -126,6 +143,16 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
           .insert(followsToCreate)
 
         if (error) throw error
+        
+        // Update follow status based on what was saved
+        if (activeTab === 'all' || activeTab === 'exclude') {
+          setFollowStatus('all')
+        } else if (activeTab === 'tags' && selectedTags.length > 0) {
+          setFollowStatus('some')
+        }
+      } else {
+        // No follows to create means unfollowing
+        setFollowStatus('none')
       }
 
       setOpen(false)
@@ -149,6 +176,9 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
     if (activeTab === "exclude") {
       return "Follow all tags, including future tags, but exclude some"
     }
+    if (activeTab === "none") {
+      return "You are not following any tags"
+    }
     return ""
   }
 
@@ -156,6 +186,10 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
     if (activeTab === "exclude") {
       const conjunction = excludedTags.length === 0 ? "with" : "but"
       return `Following all, ${conjunction} ${excludedTags.length} excluded`
+    }
+    
+    if (activeTab === "none") {
+      return "0 tags"
     }
 
     let count = 0
@@ -192,10 +226,31 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
     }
   }, [open, userTags, supabase])
 
+  // Determine button text based on follow status
+  const getButtonText = () => {
+    switch (followStatus) {
+      case 'all':
+        return 'Following All'
+      case 'some':
+        return 'Following Some'
+      default:
+        return 'Follow Tags'
+    }
+  }
+
+  const buttonVariant = followStatus === 'none' ? 'outline' : 'secondary'
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {triggerButton || <Button>Follow Tags</Button>}
+        {triggerButton ? (
+          React.cloneElement(triggerButton as React.ReactElement, {
+            children: getButtonText(),
+            variant: buttonVariant
+          })
+        ) : (
+          <Button variant={buttonVariant}>{getButtonText()}</Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px] p-0">
         <DialogHeader className="p-6 pb-0">
@@ -203,10 +258,11 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         </DialogHeader>
         <div className="p-6 pt-4">
           <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab} value={activeTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">ALL</TabsTrigger>
               <TabsTrigger value="tags">SOME</TabsTrigger>
               <TabsTrigger value="exclude">EXCLUDE</TabsTrigger>
+              <TabsTrigger value="none">NONE</TabsTrigger>
             </TabsList>
             <p className="text-sm text-muted-foreground mt-4 h-4">{getSummaryText()}</p>
             <TabsContent value="all">
@@ -279,6 +335,33 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
                           onCheckedChange={() => handleExclusion(userTag.user_tag_id)}
                         />
                         <Label htmlFor={`tag-exclude-${userTag.user_tag_id}`} className="font-semibold cursor-pointer">
+                          #{userTag.tag.name}
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {tagFollowerCounts[userTag.user_tag_id]?.toLocaleString() || 0}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="none">
+              <div className="mt-4 rounded-md border">
+                <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
+                  <p className="text-sm font-medium text-muted-foreground">Tag Name</p>
+                  <p className="text-sm font-medium text-muted-foreground">Followers</p>
+                </div>
+                <div className="p-4 space-y-4 max-h-[200px] overflow-y-auto">
+                  {userTags.map((userTag) => (
+                    <div key={userTag.user_tag_id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id={`tag-none-${userTag.user_tag_id}`}
+                          checked={false}
+                          disabled
+                        />
+                        <Label htmlFor={`tag-none-${userTag.user_tag_id}`} className="font-semibold text-muted-foreground/80">
                           #{userTag.tag.name}
                         </Label>
                       </div>

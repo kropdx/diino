@@ -25,15 +25,19 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Build query
+    // Build query - being explicit about fields and relationships
     let query = supabase
       .from('Story')
       .select(`
         *,
         author:User!Story_author_id_fkey(username, display_name),
         user_tag:UserTag(
-          *,
-          tag:CanonicalTag(*)
+          user_tag_id,
+          tag_id,
+          tag:CanonicalTag(
+            tag_id,
+            name
+          )
         )
       `)
       .eq('author_id', targetUser.user_id)
