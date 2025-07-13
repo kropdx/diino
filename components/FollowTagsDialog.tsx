@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { Database } from "@/lib/supabase/types"
 
 type UserTag = Database['public']['Tables']['UserTag']['Row'] & {
-  tag: Database['public']['Tables']['Tag']['Row']
+  tag: Database['public']['Tables']['CanonicalTag']['Row']
 }
 
 type Follow = Database['public']['Tables']['Follow']['Row']
@@ -33,28 +33,21 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
   const { user } = useAuth()
   const supabase = createClient()
 
-  // Fetch current follow status when dialog opens
-  React.useEffect(() => {
-    if (open && user) {
-      fetchCurrentFollows()
-    }
-  }, [open, user, fetchCurrentFollows])
-
-  const fetchCurrentFollows = async () => {
+  const fetchCurrentFollows = React.useCallback(async () => {
     if (!user) return
 
     const { data, error } = await supabase
       .from('Follow')
       .select('*')
       .eq('follower_user_id', user.id)
-      .eq('followed_user_id', targetUserId)
+      .in('channel_id', [targetUserId])
 
     if (!error && data) {
       setCurrentFollows(data)
       
       // Set initial state based on current follows
-      const tagFollows = data.filter(f => f.channel === 'USER_TAG')
-      const allFollow = data.find(f => f.channel === 'USER_ALL')
+      const tagFollows = data.filter(f => f.channel_type === 'USER_TAG')
+      const allFollow = data.find(f => f.channel_type === 'USER_ALL')
       
       if (allFollow) {
         setActiveTab('all')
@@ -67,7 +60,14 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         setSelectedTags(tagFollows.map(f => f.channel_id!))
       }
     }
-  }
+  }, [user, targetUserId, supabase])
+
+  // Fetch current follow status when dialog opens
+  React.useEffect(() => {
+    if (open && user) {
+      fetchCurrentFollows()
+    }
+  }, [open, user, fetchCurrentFollows])
 
   const handleTagSelection = (tagId: string) => {
     setSelectedTags((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]))
@@ -88,7 +88,7 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         .from('Follow')
         .delete()
         .eq('follower_user_id', user.id)
-        .eq('followed_user_id', targetUserId)
+        .in('channel_id', [targetUserId])
 
       // Then create new follows based on current selection
       const followsToCreate: Omit<Database['public']['Tables']['Follow']['Insert'], 'follow_id' | 'created_at'>[] = []
@@ -97,8 +97,8 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         // Following all tags
         followsToCreate.push({
           follower_user_id: user.id,
-          followed_user_id: targetUserId,
-          channel: 'USER_ALL',
+          channel_type: 'USER_ALL',
+          channel_id: targetUserId,
           metadata: excludedTags.length > 0 ? { excluded_tags: excludedTags } : null
         })
       } else if (activeTab === 'tags' && selectedTags.length > 0) {
@@ -106,8 +106,7 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         selectedTags.forEach(tagId => {
           followsToCreate.push({
             follower_user_id: user.id,
-            followed_user_id: targetUserId,
-            channel: 'USER_TAG',
+            channel_type: 'USER_TAG',
             channel_id: tagId
           })
         })
@@ -115,8 +114,8 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         // Following all except excluded
         followsToCreate.push({
           follower_user_id: user.id,
-          followed_user_id: targetUserId,
-          channel: 'USER_ALL',
+          channel_type: 'USER_ALL',
+          channel_id: targetUserId,
           metadata: { excluded_tags: excludedTags }
         })
       }
@@ -179,7 +178,7 @@ export function FollowTagsDialog({ targetUserId, userTags, triggerButton }: Foll
         const { count } = await supabase
           .from('Follow')
           .select('*', { count: 'exact', head: true })
-          .eq('channel', 'USER_TAG')
+          .eq('channel_type', 'USER_TAG')
           .eq('channel_id', userTag.user_tag_id)
         
         counts[userTag.user_tag_id] = count || 0

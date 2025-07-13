@@ -56,7 +56,7 @@ export async function GET(_request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get story counts for each tag
+    // Get story counts and subtags for each tag
     const tagsWithCounts = await Promise.all(
       (userTags || []).map(async (userTag) => {
         const { count } = await supabase
@@ -64,9 +64,21 @@ export async function GET(_request: NextRequest) {
           .select('*', { count: 'exact', head: true })
           .eq('user_tag_id', userTag.user_tag_id);
 
+        // Get unique subtags for this user tag
+        const { data: subtags } = await supabase
+          .from('Story')
+          .select('subtag')
+          .eq('user_tag_id', userTag.user_tag_id)
+          .not('subtag', 'is', null)
+          .order('subtag');
+
+        // Get unique subtags
+        const uniqueSubtags = [...new Set(subtags?.map(s => s.subtag) || [])];
+
         return {
           ...userTag,
-          story_count: count || 0
+          story_count: count || 0,
+          subtags: uniqueSubtags
         };
       })
     );

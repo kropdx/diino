@@ -141,14 +141,14 @@ export default function ChatPage() {
         const senderIds = [...new Set(data.map(m => m.sender_id))];
         if (senderIds.length > 0) {
           const { data: profileData } = await supabase
-            .from("profiles")
-            .select("id, username")
-            .in("id", senderIds);
+            .from("User")
+            .select("user_id, username")
+            .in("user_id", senderIds);
           
           if (profileData) {
             const profileMap: Record<string, string> = {};
             profileData.forEach(p => {
-              profileMap[p.id] = p.username;
+              profileMap[p.user_id] = p.username;
             });
             // Include current user's profile
             if (profile?.username && user?.id) {
@@ -194,7 +194,7 @@ export default function ChatPage() {
   // subscribe to new messages
   useEffect(() => {
     console.log('[CHAT] Setting up realtime subscription...');
-    const channel = supabase.channel(`room:${roomId}:${Date.now()}`); // Unique channel name
+    const channel = supabase.channel(`room:${roomId}`); // Shared channel name for all users in room
 
     channel
       .on(
@@ -214,13 +214,13 @@ export default function ChatPage() {
             
             if (!updatedProfiles[newMsg.sender_id] && newMsg.sender_id !== user?.id) {
               supabase
-                .from("profiles")
-                .select("id, username")
-                .eq("id", newMsg.sender_id)
+                .from("User")
+                .select("user_id, username")
+                .eq("user_id", newMsg.sender_id)
                 .single()
                 .then(({ data }) => {
                   if (data) {
-                    setProfiles((prev) => ({ ...prev, [data.id]: data.username }));
+                    setProfiles((prev) => ({ ...prev, [data.user_id]: data.username }));
                   }
                 });
             }
@@ -268,7 +268,7 @@ export default function ChatPage() {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, scrollToBottom]); // Minimal deps to avoid re-subscribing
+  }, [user?.id, roomId, scrollToBottom]); // Include roomId to re-subscribe when room changes
 
   const handleSend = async () => {
     if (!text.trim() || !user) return;
@@ -362,14 +362,14 @@ export default function ChatPage() {
         
         if (newSenderIds.length > 0) {
           const { data: profileData } = await supabase
-            .from("profiles")
-            .select("id, username")
-            .in("id", newSenderIds);
+            .from("User")
+            .select("user_id, username")
+            .in("user_id", newSenderIds);
             
           if (profileData) {
             const newProfiles: Record<string, string> = {};
             profileData.forEach(p => {
-              newProfiles[p.id] = p.username;
+              newProfiles[p.user_id] = p.username;
             });
             // Ensure current user's profile is included
             if (profile?.username && user?.id && !profiles[user.id]) {

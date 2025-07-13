@@ -15,15 +15,15 @@ import { FollowTagsDialog } from '@/components/FollowTagsDialog'
 import { Database } from '@/lib/supabase/types'
 
 type UserTag = Database['public']['Tables']['UserTag']['Row'] & {
-  tag: Database['public']['Tables']['Tag']['Row']
+  tag: Database['public']['Tables']['CanonicalTag']['Row']
 }
 
 interface Profile {
-  id: string
+  user_id: string
   username: string
   display_name: string | null
   bio: string | null
-  website_url: string | null
+  url: string | null
   created_at: string
 }
 
@@ -43,7 +43,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('User')
         .select('*')
         .eq('username', username)
         .single()
@@ -59,9 +59,9 @@ export default function ProfilePage() {
         .from('UserTag')
         .select(`
           *,
-          tag:Tag(*)
+          tag:CanonicalTag(*)
         `)
-        .eq('user_id', data.id)
+        .eq('user_id', data.user_id)
         
       if (tags) {
         setUserTags(tags as UserTag[])
@@ -90,7 +90,7 @@ export default function ProfilePage() {
     notFound()
   }
 
-  const isOwnProfile = user?.id === profile.id
+  const isOwnProfile = user?.id === profile.user_id
 
   return (
     <AppLayout>
@@ -120,7 +120,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <FollowTagsDialog 
-                    targetUserId={profile.id}
+                    targetUserId={profile.user_id}
                     userTags={userTags}
                     triggerButton={<Button variant="outline">Follow Tags</Button>}
                   />
@@ -135,17 +135,17 @@ export default function ProfilePage() {
                 </div>
               )}
               
-              {profile.website_url && (
+              {profile.url && (
                 <div>
                   <h3 className="font-semibold mb-2">Website</h3>
                   <a 
-                    href={profile.website_url.startsWith('http') ? profile.website_url : `https://${profile.website_url}`}
+                    href={profile.url.startsWith('http') ? profile.url : `https://${profile.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline inline-flex items-center gap-1"
                   >
                     <Globe className="h-4 w-4" />
-                    {profile.website_url}
+                    {profile.url}
                   </a>
                 </div>
               )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, User, Users, Activity, Plus, Tag } from 'lucide-react';
+import { Home, User, Users, Activity, Plus, Tag, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -13,12 +13,20 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/theme-toggle';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface UserTag {
   user_tag_id: string;
@@ -26,12 +34,14 @@ interface UserTag {
     tag_id: string;
     name: string;
   };
+  subtags?: string[];
 }
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { profile: userProfile } = useAuth();
   const [userTags, setUserTags] = useState<UserTag[]>([]);
+  const [openTags, setOpenTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -116,22 +126,85 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {userTags.map((userTag) => (
-                  <SidebarMenuItem key={userTag.user_tag_id}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={pathname === `/tag/${userTag.tag.name}`}
+                {userTags.map((userTag) => {
+                  const hasSubtags = userTag.subtags && userTag.subtags.length > 0;
+                  const isOpen = openTags.has(userTag.user_tag_id);
+                  
+                  if (!hasSubtags) {
+                    // Simple tag without subtags
+                    return (
+                      <SidebarMenuItem key={userTag.user_tag_id}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={pathname === `/tag/${userTag.tag.name}`}
+                        >
+                          <Link 
+                            href={`/tag/${userTag.tag.name}`}
+                            onClick={() => console.log('Navigating to tag:', userTag.tag.name, 'URL:', `/tag/${userTag.tag.name}`)}
+                          >
+                            <Tag className="size-4" />
+                            <span className="uppercase text-xs font-medium">#{userTag.tag.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }
+                  
+                  // Tag with subtags - use collapsible
+                  return (
+                    <Collapsible
+                      key={userTag.user_tag_id}
+                      open={isOpen}
+                      onOpenChange={(open) => {
+                        setOpenTags(prev => {
+                          const next = new Set(prev);
+                          if (open) {
+                            next.add(userTag.user_tag_id);
+                          } else {
+                            next.delete(userTag.user_tag_id);
+                          }
+                          return next;
+                        });
+                      }}
                     >
-                      <Link 
-                        href={`/tag/${userTag.tag.name}`}
-                        onClick={() => console.log('Navigating to tag:', userTag.tag.name, 'URL:', `/tag/${userTag.tag.name}`)}
-                      >
-                        <Tag className="size-4" />
-                        <span>#{userTag.tag.name}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton>
+                            <Tag className="size-4" />
+                            <span className="uppercase text-xs font-medium">#{userTag.tag.name}</span>
+                            <ChevronRight className={`ml-auto size-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            <SidebarMenuSubItem>
+                              <SidebarMenuSubButton 
+                                asChild
+                                isActive={pathname === `/tag/${userTag.tag.name}`}
+                              >
+                                <Link href={`/tag/${userTag.tag.name}`}>
+                                  <span className="uppercase text-xs font-medium">All #{userTag.tag.name}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                            {userTag.subtags?.map((subtag) => (
+                              <SidebarMenuSubItem key={subtag}>
+                                <SidebarMenuSubButton 
+                                  asChild
+                                  isActive={pathname === `/tag/${userTag.tag.name}/${subtag}`}
+                                >
+                                  <Link href={`/tag/${userTag.tag.name}/${subtag}`}>
+                                    <span className="uppercase text-xs font-medium">#{userTag.tag.name}.{subtag}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
