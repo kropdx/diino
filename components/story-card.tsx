@@ -133,29 +133,35 @@ export function StoryCard({
 
   return (
     <Card className="p-4 space-y-3 hover:shadow-md transition-shadow">
-      {/* Header & Content wrapped in link for permalink */}
-      <Link href={`/${story.author.username}/${story.userTag?.tag?.name || 'uncategorized'}/${story.shortId}`}>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <Link 
+              href={`/${story.author.username}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 hover:underline"
+            >
               <span className="font-medium">{story.author.displayName || story.author.username}</span>
               <span className="text-muted-foreground">@{story.author.username}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">
-                {formatDistanceToNow(new Date(story.createdAt), { addSuffix: true })}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {story.userTag.tag.name}
-                {story.subtag && `.${story.subtag}`}
-              </Badge>
-            </div>
+            </Link>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">
+              {formatDistanceToNow(new Date(story.createdAt), { addSuffix: true })}
+            </span>
           </div>
-
-          {renderContent()}
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {story.userTag.tag.name}
+              {story.subtag && `.${story.subtag}`}
+            </Badge>
+          </div>
         </div>
-      </Link>
+
+        {/* Content wrapped in link for story permalink */}
+        <Link href={`/${story.author.username}/${story.userTag?.tag?.name || 'uncategorized'}/${story.shortId}`}>
+          {renderContent()}
+        </Link>
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-4">

@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:follow": "npx tsx scripts/test-follow/run-all-tests.ts",
+    "test:follow:seed": "npx tsx scripts/test-follow/run-all-tests.ts --seed",
+    "test:follow:inspect": "npx tsx scripts/test-follow/run-all-tests.ts --inspect",
+    "test:follow:user": "npx tsx scripts/test-follow/inspect-follows.ts",
+    "test:follow:clean": "npx tsx scripts/test-follow/seed-test-data.ts --cleanup",
+    "test:follow:quick": "npx tsx scripts/test-follow/quick-test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
@@ -40,13 +46,15 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
-    "@types/node": "^20.17.14",
+    "@types/node": "^20.19.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.2.0",
     "eslint": "^9.18.0",
     "eslint-config-next": "15.1.4",
     "postcss": "^8.5.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3"
   }
 }
